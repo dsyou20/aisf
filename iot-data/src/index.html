@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트팜 IoT 데이터 대시보드</title>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .sensor-data {
+            margin-bottom: 20px;
+        }
+        .sensor-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #52c41a;
+        }
+        .chart-container {
+            height: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 스마트팜 IoT 데이터 대시보드</h1>
+            <p>실시간 센서 데이터 모니터링</p>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h3>🌡️ 온도</h3>
+                <div class="sensor-data">
+                    <div class="sensor-value" id="temperature">--°C</div>
+                    <p>현재 온도</p>
+                </div>
+                <div class="chart-container">
+                    <p>온도 차트</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>💧 습도</h3>
+                <div class="sensor-data">
+                    <div class="sensor-value" id="humidity">--%</div>
+                    <p>현재 습도</p>
+                </div>
+                <div class="chart-container">
+                    <p>습도 차트</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>☀️ 조도</h3>
+                <div class="sensor-data">
+                    <div class="sensor-value" id="light">-- lux</div>
+                    <p>현재 조도</p>
+                </div>
+                <div class="chart-container">
+                    <p>조도 차트</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>🌱 토양 수분</h3>
+                <div class="sensor-data">
+                    <div class="sensor-value" id="soil">--%</div>
+                    <p>토양 수분</p>
+                </div>
+                <div class="chart-container">
+                    <p>토양 수분 차트</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 시뮬레이션된 센서 데이터
+        function updateSensorData() {
+            // 온도 (15-30°C 범위)
+            const temperature = (15 + Math.random() * 15).toFixed(1);
+            document.getElementById('temperature').textContent = temperature + '°C';
+            
+            // 습도 (40-80% 범위)
+            const humidity = (40 + Math.random() * 40).toFixed(0);
+            document.getElementById('humidity').textContent = humidity + '%';
+            
+            // 조도 (0-1000 lux 범위)
+            const light = Math.floor(Math.random() * 1000);
+            document.getElementById('light').textContent = light + ' lux';
+            
+            // 토양 수분 (20-90% 범위)
+            const soil = (20 + Math.random() * 70).toFixed(0);
+            document.getElementById('soil').textContent = soil + '%';
+        }
+        
+        // 3초마다 데이터 업데이트
+        updateSensorData();
+        setInterval(updateSensorData, 3000);
+    </script>
+</body>
+</html> 

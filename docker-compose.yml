@@ -1,17 +1,135 @@
-
 services:
-  yolo-jupyter:
-    build: .
-    container_name: aisf_dev_jupyter
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:15
+    container_name: smartfarm_postgres
+    environment:
+      POSTGRES_DB: smartfarm
+      POSTGRES_USER: smartfarm_user
+      POSTGRES_PASSWORD: smartfarm_password
     ports:
-      - "8080:8080"  # 예비용 포트 (추가 웹 서비스 대비)
-      - "8888:8888"  # JupyterLab
+      - "5432:5432"
     volumes:
-      - /c/data1/lx/aisf2:/workspace/data  # Windows 호스트의 C:\data1
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartfarm_user -d smartfarm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 캐시
+  redis:
+    image: redis:7-alpine
+    container_name: smartfarm_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI 백엔드
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartfarm_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://smartfarm_user:smartfarm_password@postgres:5432/smartfarm
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=development
+    volumes:
+      - ./backend:/app
+      - ./uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]
+  # React 프론트엔드
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartfarm_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - FAST_REFRESH=true
+      - WDS_SOCKET_HOST=localhost
+      - WDS_SOCKET_PORT=3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # IoT 데이터 수집 서비스
+  iot-collector:
+    build:
+      context: ./iot-data
+      dockerfile: Dockerfile
+    container_name: smartfarm_iot_collector
+    ports:
+      - "3001:3001"
+    environment:
+      - MQTT_BROKER=mqtt
+      - MQTT_PORT=1883
+      - API_URL=http://backend:8000
+    depends_on:
+      mqtt:
+        condition: service_started
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # MQTT 브로커
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    container_name: smartfarm_mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mqtt_data:/mosquitto/data
+      - mqtt_logs:/mosquitto/log
+    restart: unless-stopped
+
+  # Nginx 프록시
+  nginx:
+    image: nginx:alpine
+    container_name: smartfarm_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  mqtt_data:
+  mqtt_logs:
