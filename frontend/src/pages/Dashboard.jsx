@@ -27,7 +27,8 @@ import {
   ControlOutlined,
   BellOutlined,
   LogoutOutlined,
-  HomeOutlined
+  HomeOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -75,6 +76,8 @@ const Dashboard = () => {
         { key: 'experience-knowledge', label: '경험 지식', icon: <ExperimentOutlined /> },
         { key: 'cultivation-recommendation', label: '재배 추천', icon: <BarChartOutlined /> },
         { key: 'control-recommendation', label: '제어 추천', icon: <ControlOutlined /> },
+        { key: 'data-analytics', label: '데이터 분석', icon: <BarChartOutlined /> },
+        { key: 'data-explorer', label: '데이터 탐색', icon: <SearchOutlined /> },
         { key: 'system', label: '시스템 설정', icon: <SettingOutlined /> }
       ]
     }
@@ -585,6 +588,86 @@ const Dashboard = () => {
                   <div><Text strong>사용 횟수:</Text> 67회</div>
                   <div><Text strong>마지막 업데이트:</Text> 2024-01-14</div>
                   <div><Text strong>상태:</Text> <Tag color="warning">테스트 중</Tag></div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderDataAnalytics = () => {
+    if (userType === 'admin') {
+      return (
+        <div>
+          <Title level={3} style={{ marginBottom: '24px' }}>데이터 분석 대시보드</Title>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={12}>
+              <Card title="실시간 데이터 현황" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>총 데이터 포인트:</Text> 145,680개</div>
+                  <div><Text strong>활성 센서:</Text> 24개</div>
+                  <div><Text strong>마지막 업데이트:</Text> 2분 전</div>
+                  <div><Text strong>데이터 품질:</Text> <Tag color="success">우수</Tag></div>
+                  <Button 
+                    type="primary" 
+                    onClick={() => navigate('/analytics/dashboard')}
+                    style={{ marginTop: '16px' }}
+                  >
+                    상세 분석 보기
+                  </Button>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="분석 통계" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>환경 데이터:</Text> 98,450개</div>
+                  <div><Text strong>생육 데이터:</Text> 25,120개</div>
+                  <div><Text strong>경영 데이터:</Text> 18,890개</div>
+                  <div><Text strong>제어 데이터:</Text> 3,220개</div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const renderDataExplorer = () => {
+    if (userType === 'admin') {
+      return (
+        <div>
+          <Title level={3} style={{ marginBottom: '24px' }}>데이터 탐색기</Title>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={12}>
+              <Card title="검색 및 필터링" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>지원 데이터 유형:</Text> 4개</div>
+                  <div><Text strong>검색 가능 기간:</Text> 2020-2021</div>
+                  <div><Text strong>농장 수:</Text> 8개</div>
+                  <div><Text strong>지역:</Text> 4개 (대구, 전남, 전북, 충북)</div>
+                  <Button 
+                    type="primary" 
+                    onClick={() => navigate('/analytics/explorer')}
+                    style={{ marginTop: '16px' }}
+                  >
+                    데이터 탐색 시작
+                  </Button>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="고급 분석 기능" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>상관관계 분석:</Text> <Tag color="success">지원</Tag></div>
+                  <div><Text strong>시각화:</Text> <Tag color="success">지원</Tag></div>
+                  <div><Text strong>데이터 내보내기:</Text> <Tag color="success">지원</Tag></div>
+                  <div><Text strong>실시간 필터링:</Text> <Tag color="success">지원</Tag></div>
                 </Space>
               </Card>
             </Col>
@@ -1260,7 +1343,9 @@ const Dashboard = () => {
           {selectedMenu === 'experience-knowledge' && renderExperienceKnowledge()}
           {selectedMenu === 'cultivation-recommendation' && renderCultivationRecommendation()}
           {selectedMenu === 'control-recommendation' && renderControlRecommendation()}
-          {selectedMenu !== 'overview' && !['tomato-cultivation', 'recommendation', 'control', 'farmland', 'knowledge', 'users', 'record-knowledge', 'experience-knowledge', 'cultivation-recommendation', 'control-recommendation'].includes(selectedMenu) && (
+          {selectedMenu === 'data-analytics' && renderDataAnalytics()}
+          {selectedMenu === 'data-explorer' && renderDataExplorer()}
+          {selectedMenu !== 'overview' && !['tomato-cultivation', 'recommendation', 'control', 'farmland', 'knowledge', 'users', 'record-knowledge', 'experience-knowledge', 'cultivation-recommendation', 'control-recommendation', 'data-analytics', 'data-explorer'].includes(selectedMenu) && (
             <Card>
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <Title level={3}>개발 중인 기능입니다</Title>

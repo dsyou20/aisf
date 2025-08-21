@@ -28,6 +28,12 @@ import Control from './pages/knowledge/Control';
 import Users from './pages/admin/Users';
 import AdminKnowledge from './pages/admin/Knowledge';
 
+// 데이터 분석 페이지들
+import AnalyticsDashboard from './pages/analytics/Dashboard';
+import DataExplorer from './pages/analytics/Explorer';
+import TestPage from './pages/analytics/Test';
+import SimpleTest from './pages/analytics/SimpleTest';
+
 import './styles/global.css';
 
 function App() {
@@ -73,6 +79,16 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="knowledge" element={<AdminKnowledge />} />
         </Route>
+        
+        {/* 데이터 분석 */}
+        <Route path="/analytics" element={<DashboardLayout />}>
+          <Route path="dashboard" element={<AnalyticsDashboard />} />
+          <Route path="explorer" element={<DataExplorer />} />
+          <Route path="test" element={<TestPage />} />
+        </Route>
+        
+        {/* 간단한 테스트 (레이아웃 없이) */}
+        <Route path="/simple-test" element={<SimpleTest />} />
       </Routes>
     </Router>
   );

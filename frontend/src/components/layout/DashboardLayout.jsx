@@ -8,9 +8,10 @@ import {
   TeamOutlined,
   BookOutlined,
   UserOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  BarChartOutlined
 } from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import styled from 'styled-components';
 
 const { Header, Sider, Content } = Layout;
@@ -42,7 +43,7 @@ const StyledContent = styled(Content)`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 `;
 
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,6 +86,15 @@ const DashboardLayout = ({ children }) => {
         { key: '/knowledge/disease', label: '병해 지식' },
         { key: '/knowledge/recommendation', label: '권장 지식' },
         { key: '/knowledge/control', label: '제어 지식' },
+      ],
+    },
+    {
+      key: 'analytics',
+      icon: <BarChartOutlined />,
+      label: '데이터 분석',
+      children: [
+        { key: '/analytics/dashboard', label: '분석 대시보드' },
+        { key: '/analytics/explorer', label: '데이터 탐색기' },
       ],
     },
   ];
@@ -145,7 +155,7 @@ const DashboardLayout = ({ children }) => {
           </div>
         </StyledHeader>
         <StyledContent>
-          {children}
+          <Outlet />
         </StyledContent>
       </Layout>
     </StyledLayout>
