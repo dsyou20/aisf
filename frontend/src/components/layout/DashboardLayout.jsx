@@ -63,6 +63,7 @@ const DashboardLayout = () => {
         { key: '/cultivation/status', label: '재배 현황' },
         { key: '/cultivation/recommendation', label: 'AI 권장사항' },
         { key: '/cultivation/execution', label: '재배 실행' },
+        { key: '/cultivation/simulator', label: '환경 시뮬레이터' },
       ],
     },
     {

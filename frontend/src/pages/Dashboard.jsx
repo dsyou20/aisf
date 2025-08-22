@@ -49,7 +49,8 @@ const Dashboard = () => {
         { key: 'tomato-cultivation', label: '토마토 재배력', icon: <ExperimentOutlined /> },
         { key: 'recommendation', label: '추천 관리', icon: <BookOutlined /> },
         { key: 'control', label: '제어 관리', icon: <ControlOutlined /> },
-        { key: 'farmland', label: '농지 관리', icon: <ExperimentOutlined /> }
+        { key: 'farmland', label: '농지 관리', icon: <ExperimentOutlined /> },
+        { key: 'simulator', label: '환경 시뮬레이터', icon: <ExperimentOutlined /> }
       ]
     },
     manager: {
@@ -61,7 +62,8 @@ const Dashboard = () => {
         { key: 'recommendation', label: '추천 관리', icon: <BookOutlined /> },
         { key: 'control', label: '제어 관리', icon: <ControlOutlined /> },
         { key: 'farmland', label: '농지 관리', icon: <ExperimentOutlined /> },
-        { key: 'knowledge', label: '지식 관리', icon: <BookOutlined /> }
+        { key: 'knowledge', label: '지식 관리', icon: <BookOutlined /> },
+        { key: 'simulator', label: '환경 시뮬레이터', icon: <ExperimentOutlined /> }
       ]
     },
     admin: {
@@ -88,6 +90,11 @@ const Dashboard = () => {
 
 
   const handleMenuClick = (key) => {
+    // 환경 시뮬레이터는 별도 페이지로 이동
+    if (key === 'simulator') {
+      navigate('/cultivation/simulator');
+      return;
+    }
     setSelectedMenu(key);
   };
 

@@ -10,6 +10,7 @@ import Overview from './pages/cultivation/Overview';
 import Status from './pages/cultivation/Status';
 import Recommendation from './pages/cultivation/Recommendation';
 import Execution from './pages/cultivation/Execution';
+import Simulator from './pages/cultivation/Simulator';
 
 // 전문가 관리 페이지들
 import Owners from './pages/experts/Owners';
@@ -55,6 +56,7 @@ function App() {
           <Route path="status" element={<Status />} />
           <Route path="recommendation" element={<Recommendation />} />
           <Route path="execution" element={<Execution />} />
+          <Route path="simulator" element={<Simulator />} />
         </Route>
         
         {/* 전문가 관리 */}
