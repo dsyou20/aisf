@@ -540,9 +540,25 @@ export const generateRealtimeEnvironmentData = (baseEnvironment, week) => {
 /**
  * 월간 환경 요약 데이터 생성
  */
-export const generateMonthlyEnvironmentSummary = (year, month, baseEnvironment) => {
+export const generateMonthlyEnvironmentSummary = (year, month, baseEnvironment = {}) => {
   const daysInMonth = new Date(year, month, 0).getDate();
   const monthlyData = [];
+  
+  // 기본 환경 값 설정
+  const defaultEnvironment = {
+    temperature: { current: 22 },
+    humidity: { current: 65 },
+    co2: { current: 400 },
+    light: { current: 300 }
+  };
+  
+  // baseEnvironment 안전하게 처리
+  const safeEnvironment = {
+    temperature: baseEnvironment.temperature?.current || defaultEnvironment.temperature.current,
+    humidity: baseEnvironment.humidity?.current || defaultEnvironment.humidity.current,
+    co2: baseEnvironment.co2?.current || defaultEnvironment.co2.current,
+    light: baseEnvironment.light?.current || defaultEnvironment.light.current
+  };
   
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month - 1, day);
@@ -558,10 +574,10 @@ export const generateMonthlyEnvironmentSummary = (year, month, baseEnvironment) 
     const dayData = {
       date: date.toISOString().split('T')[0],
       day: day,
-      avgTemperature: baseEnvironment.temperature + seasonalTemp + dailyVariation,
-      avgHumidity: Math.max(30, Math.min(95, baseEnvironment.humidity + seasonalHumidity - dailyVariation)),
-      avgLightIntensity: baseEnvironment.lightIntensity * (0.8 + Math.random() * 0.4),
-      avgSoilMoisture: baseEnvironment.soilMoisture + (Math.random() - 0.5) * 10,
+      avgTemperature: safeEnvironment.temperature + seasonalTemp + dailyVariation,
+      avgHumidity: Math.max(30, Math.min(95, safeEnvironment.humidity + seasonalHumidity - dailyVariation)),
+      avgLightIntensity: safeEnvironment.light * (0.8 + Math.random() * 0.4),
+      avgSoilMoisture: (baseEnvironment.soilMoisture?.current || 70) + (Math.random() - 0.5) * 10,
       
       // 환경 상태 평가
       status: 'normal', // normal, warning, critical
@@ -628,4 +644,42 @@ const getRandomWeatherCondition = () => {
   }
   
   return conditions[0];
+};
+
+// 주차별 환경 데이터 생성
+export const generateWeeklyEnvironmentData = (weeks = 16, baseSensors = {}) => {
+  const weeklyData = [];
+  
+  // 기본 센서 값 설정
+  const defaultSensors = {
+    temperature: { current: 22 },
+    humidity: { current: 65 },
+    co2: { current: 400 },
+    light: { current: 300 },
+    soilMoisture: { current: 70 }
+  };
+  
+  // baseSensors와 기본값 병합
+  const sensors = {
+    temperature: baseSensors.temperature || defaultSensors.temperature,
+    humidity: baseSensors.humidity || defaultSensors.humidity,
+    co2: baseSensors.co2 || defaultSensors.co2,
+    light: baseSensors.light || defaultSensors.light,
+    soilMoisture: baseSensors.soilMoisture || defaultSensors.soilMoisture
+  };
+  
+  for (let week = 1; week <= weeks; week++) {
+    const weekData = {
+      week: `${week}주차`,
+      temperature: (sensors.temperature?.current || 22) + (Math.random() - 0.5) * 4,
+      humidity: (sensors.humidity?.current || 65) + (Math.random() - 0.5) * 10,
+      co2: (sensors.co2?.current || 400) + (Math.random() - 0.5) * 100,
+      light: (sensors.light?.current || 300) + (Math.random() - 0.5) * 200,
+      soilMoisture: (sensors.soilMoisture?.current || 70) + (Math.random() - 0.5) * 10
+    };
+    
+    weeklyData.push(weekData);
+  }
+  
+  return weeklyData;
 };

@@ -68,7 +68,7 @@ const Home = () => {
 
   const handleEnter = () => {
     if (selectedUserType) {
-      navigate(`/dashboard/${selectedUserType}`);
+      navigate(`/${selectedUserType}`);
     }
   };
 

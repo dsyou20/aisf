@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Card, 
@@ -38,6 +38,11 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedMenu, setSelectedMenu] = useState('overview');
 
+  // userType이 변경될 때 기본 메뉴 설정
+  useEffect(() => {
+    setSelectedMenu('overview');
+  }, [userType]);
+
   // 사용자 타입별 설정
   const userConfigs = {
     owner: {
@@ -50,7 +55,7 @@ const Dashboard = () => {
         { key: 'recommendation', label: '추천 관리', icon: <BookOutlined /> },
         { key: 'control', label: '제어 관리', icon: <ControlOutlined /> },
         { key: 'farmland', label: '농지 관리', icon: <ExperimentOutlined /> },
-        { key: 'simulator', label: '환경 시뮬레이터', icon: <ExperimentOutlined /> }
+        { key: 'owner-greenhouse-center', label: '온실 관리 센터', icon: <ExperimentOutlined /> }
       ]
     },
     manager: {
@@ -63,7 +68,7 @@ const Dashboard = () => {
         { key: 'control', label: '제어 관리', icon: <ControlOutlined /> },
         { key: 'farmland', label: '농지 관리', icon: <ExperimentOutlined /> },
         { key: 'knowledge', label: '지식 관리', icon: <BookOutlined /> },
-        { key: 'simulator', label: '환경 시뮬레이터', icon: <ExperimentOutlined /> }
+        { key: 'yield-prediction', label: '수확량 예측', icon: <BarChartOutlined /> }
       ]
     },
     admin: {
@@ -90,11 +95,18 @@ const Dashboard = () => {
 
 
   const handleMenuClick = (key) => {
-    // 환경 시뮬레이터는 별도 페이지로 이동
-    if (key === 'simulator') {
-      navigate('/cultivation/simulator');
+    // 수확량 예측은 별도 페이지로 이동
+    if (key === 'yield-prediction') {
+      navigate('/cultivation/yield-prediction');
       return;
     }
+    
+    // 농장주용 온실 관리 센터
+    if (key === 'owner-greenhouse-center') {
+      navigate('/cultivation/owner-greenhouse-overview');
+      return;
+    }
+    
     setSelectedMenu(key);
   };
 
@@ -685,6 +697,81 @@ const Dashboard = () => {
     return null;
   };
 
+  const renderGreenhouseCenter = () => {
+    if (userType === 'manager') {
+      return (
+        <div>
+          <Title level={3} style={{ marginBottom: '24px' }}>온실 관리 대시보드</Title>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={12}>
+              <Card title="담당 하우스 현황" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>관리 하우스:</Text> 2개 (1번, 2번 하우스)</div>
+                  <div><Text strong>총 재배 면적:</Text> 900㎡</div>
+                  <div><Text strong>현재 작물:</Text> 토마토, 딸기</div>
+                  <div><Text strong>평균 생산성:</Text> 78.5%</div>
+                  <Button 
+                    type="primary" 
+                    onClick={() => navigate('/cultivation/greenhouse-overview')}
+                    style={{ marginTop: '16px' }}
+                  >
+                    상세 관리 화면
+                  </Button>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="오늘의 주요 작업" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>환경 점검:</Text> <Tag color="success">완료</Tag></div>
+                  <div><Text strong>관수 작업:</Text> <Tag color="processing">진행 중</Tag></div>
+                  <div><Text strong>온도 조절:</Text> <Tag color="warning">주의 필요</Tag></div>
+                  <div><Text strong>생육 관찰:</Text> <Tag color="default">예정</Tag></div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      );
+    } else if (userType === 'owner') {
+      return (
+        <div>
+          <Title level={3} style={{ marginBottom: '24px' }}>전체 온실 현황</Title>
+          <Row gutter={[24, 24]}>
+            <Col xs={24} lg={12}>
+              <Card title="전체 하우스 요약" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>총 하우스:</Text> 5개</div>
+                  <div><Text strong>총 재배 면적:</Text> 1,850㎡</div>
+                  <div><Text strong>관리자:</Text> 5명</div>
+                  <div><Text strong>평균 생산성:</Text> 75%</div>
+                  <Button 
+                    type="primary" 
+                    onClick={() => navigate('/cultivation/greenhouse-overview')}
+                    style={{ marginTop: '16px' }}
+                  >
+                    전체 하우스 관리
+                  </Button>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} lg={12}>
+              <Card title="관리자 성과" size="small">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <div><Text strong>최고 성과:</Text> 박전문 (95%)</div>
+                  <div><Text strong>개선 필요:</Text> 최유기 (45%)</div>
+                  <div><Text strong>평균 평점:</Text> ⭐ 4.4</div>
+                  <div><Text strong>총 알림:</Text> 8건</div>
+                </Space>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const renderTomatoCultivation = () => {
     if (userType === 'owner') {
       return (
@@ -745,7 +832,178 @@ const Dashboard = () => {
   };
 
   const renderOverview = () => {
-    if (userType === 'owner') {
+    if (userType === 'manager') {
+      return (
+        <Row gutter={[24, 24]}>
+          {/* 온실 관리 대시보드 */}
+          <Col xs={24}>
+            <Card title="🏠 담당 온실 현황" style={{ marginBottom: '24px' }}>
+              <Row gutter={[16, 16]}>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="관리 하우스"
+                      value={2}
+                      suffix="개"
+                      valueStyle={{ color: '#1890ff' }}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="총 재배 면적"
+                      value={900}
+                      suffix="㎡"
+                      valueStyle={{ color: '#52c41a' }}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="평균 생산성"
+                      value={78.5}
+                      suffix="%"
+                      valueStyle={{ color: '#722ed1' }}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="알림"
+                      value={3}
+                      suffix="건"
+                      valueStyle={{ color: '#fa541c' }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* 하우스별 간략 현황 */}
+          <Col xs={24}>
+            <Card title="🌱 하우스별 현황">
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={12}>
+                  <Card 
+                    size="small" 
+                    title="1번 하우스 (토마토)"
+                    extra={<Tag color="green">정상</Tag>}
+                  >
+                    <Row gutter={[8, 8]}>
+                      <Col span={12}>
+                        <div>온도: 23.5°C</div>
+                        <div>습도: 68%</div>
+                        <div>재배주차: 15주차</div>
+                      </Col>
+                      <Col span={12}>
+                        <div>생산성: 85%</div>
+                        <div>품질: 92점</div>
+                        <Button 
+                          type="primary" 
+                          size="small"
+                          onClick={() => navigate('/cultivation/greenhouse-overview')}
+                        >
+                          상세 관리
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+                <Col xs={24} lg={12}>
+                  <Card 
+                    size="small" 
+                    title="2번 하우스 (딸기)"
+                    extra={<Tag color="orange">주의</Tag>}
+                  >
+                    <Row gutter={[8, 8]}>
+                      <Col span={12}>
+                        <div>온도: 26.8°C</div>
+                        <div>습도: 82%</div>
+                        <div>재배주차: 12주차</div>
+                      </Col>
+                      <Col span={12}>
+                        <div>생산성: 72%</div>
+                        <div>품질: 85점</div>
+                        <Button 
+                          type="primary" 
+                          size="small"
+                          onClick={() => navigate('/cultivation/greenhouse-overview')}
+                        >
+                          상세 관리
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* 오늘의 작업 */}
+          <Col xs={24}>
+            <Card title="📋 오늘의 주요 작업">
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={12}>
+                  <List
+                    size="small"
+                    dataSource={[
+                      { task: '1번 하우스 환경 점검', status: 'completed', time: '09:00' },
+                      { task: '2번 하우스 온도 조절', status: 'in_progress', time: '14:30' },
+                      { task: '딸기 하우스 관수', status: 'pending', time: '16:00' },
+                      { task: '토마토 생육 관찰', status: 'pending', time: '17:00' }
+                    ]}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                          <span>{item.task}</span>
+                          <Space>
+                            <Text type="secondary">{item.time}</Text>
+                            <Tag color={
+                              item.status === 'completed' ? 'green' :
+                              item.status === 'in_progress' ? 'blue' : 'default'
+                            }>
+                              {item.status === 'completed' ? '완료' :
+                               item.status === 'in_progress' ? '진행중' : '예정'}
+                            </Tag>
+                          </Space>
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </Col>
+                <Col xs={24} lg={12}>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Button 
+                      type="primary" 
+                      block
+                      onClick={() => navigate('/cultivation/greenhouse-overview')}
+                    >
+                      📊 상세 온실 관리 센터
+                    </Button>
+                    <Button 
+                      block
+                      onClick={() => navigate('/cultivation/overview')}
+                    >
+                      재배 개요 보기
+                    </Button>
+                    <Button 
+                      block
+                      onClick={() => navigate('/cultivation/recommendation')}
+                    >
+                      AI 권장사항 확인
+                    </Button>
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+      );
+    } else if (userType === 'owner') {
       return (
         <Row gutter={[24, 24]}>
           {/* 목표 표시 */}
@@ -1095,6 +1353,177 @@ const Dashboard = () => {
           </Col>
         </Row>
       );
+    } else if (userType === 'manager') {
+      return (
+        <Row gutter={[24, 24]}>
+          {/* 온실 관리 대시보드 */}
+          <Col xs={24}>
+            <Card title="🏠 담당 온실 현황" style={{ marginBottom: '24px' }}>
+              <Row gutter={[16, 16]}>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="관리 하우스"
+                      value={2}
+                      suffix="개"
+                      valueStyle={{ color: '#1890ff' }}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="총 재배 면적"
+                      value={900}
+                      suffix="㎡"
+                      valueStyle={{ color: '#52c41a' }}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="평균 생산성"
+                      value={78.5}
+                      suffix="%"
+                      valueStyle={{ color: '#722ed1' }}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} lg={6}>
+                  <Card size="small">
+                    <Statistic
+                      title="알림"
+                      value={3}
+                      suffix="건"
+                      valueStyle={{ color: '#fa541c' }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* 하우스별 간략 현황 */}
+          <Col xs={24}>
+            <Card title="🌱 하우스별 현황">
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={12}>
+                  <Card 
+                    size="small" 
+                    title="1번 하우스 (토마토)"
+                    extra={<Tag color="green">정상</Tag>}
+                  >
+                    <Row gutter={[8, 8]}>
+                      <Col span={12}>
+                        <div>온도: 23.5°C</div>
+                        <div>습도: 68%</div>
+                        <div>재배주차: 15주차</div>
+                      </Col>
+                      <Col span={12}>
+                        <div>생산성: 85%</div>
+                        <div>품질: 92점</div>
+                        <Button 
+                          type="primary" 
+                          size="small"
+                          onClick={() => navigate('/cultivation/greenhouse-overview')}
+                        >
+                          상세 관리
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+                <Col xs={24} lg={12}>
+                  <Card 
+                    size="small" 
+                    title="2번 하우스 (딸기)"
+                    extra={<Tag color="orange">주의</Tag>}
+                  >
+                    <Row gutter={[8, 8]}>
+                      <Col span={12}>
+                        <div>온도: 26.8°C</div>
+                        <div>습도: 82%</div>
+                        <div>재배주차: 12주차</div>
+                      </Col>
+                      <Col span={12}>
+                        <div>생산성: 72%</div>
+                        <div>품질: 85점</div>
+                        <Button 
+                          type="primary" 
+                          size="small"
+                          onClick={() => navigate('/cultivation/greenhouse-overview')}
+                        >
+                          상세 관리
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* 오늘의 작업 */}
+          <Col xs={24}>
+            <Card title="📋 오늘의 주요 작업">
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={12}>
+                  <List
+                    size="small"
+                    dataSource={[
+                      { task: '1번 하우스 환경 점검', status: 'completed', time: '09:00' },
+                      { task: '2번 하우스 온도 조절', status: 'in_progress', time: '14:30' },
+                      { task: '딸기 하우스 관수', status: 'pending', time: '16:00' },
+                      { task: '토마토 생육 관찰', status: 'pending', time: '17:00' }
+                    ]}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                          <span>{item.task}</span>
+                          <Space>
+                            <Text type="secondary">{item.time}</Text>
+                            <Tag color={
+                              item.status === 'completed' ? 'green' :
+                              item.status === 'in_progress' ? 'blue' : 'default'
+                            }>
+                              {item.status === 'completed' ? '완료' :
+                               item.status === 'in_progress' ? '진행중' : '예정'}
+                            </Tag>
+                          </Space>
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                </Col>
+                <Col xs={24} lg={12}>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Button 
+                      type="primary" 
+                      block
+                      onClick={() => navigate('/cultivation/greenhouse-overview')}
+                    >
+                      📊 상세 온실 관리 센터
+                    </Button>
+                    <Button 
+                      block
+                      onClick={() => navigate('/cultivation/overview')}
+                    >
+                      재배 개요 보기
+                    </Button>
+                    <Button 
+                      block
+                      onClick={() => navigate('/cultivation/recommendation')}
+                    >
+                      AI 권장사항 확인
+                    </Button>
+                  </Space>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+      );
     } else if (userType === 'admin') {
       return (
         <Row gutter={[24, 24]}>
@@ -1352,7 +1781,8 @@ const Dashboard = () => {
           {selectedMenu === 'control-recommendation' && renderControlRecommendation()}
           {selectedMenu === 'data-analytics' && renderDataAnalytics()}
           {selectedMenu === 'data-explorer' && renderDataExplorer()}
-          {selectedMenu !== 'overview' && !['tomato-cultivation', 'recommendation', 'control', 'farmland', 'knowledge', 'users', 'record-knowledge', 'experience-knowledge', 'cultivation-recommendation', 'control-recommendation', 'data-analytics', 'data-explorer'].includes(selectedMenu) && (
+          {selectedMenu === 'greenhouse-center' && renderGreenhouseCenter()}
+          {selectedMenu !== 'overview' && !['tomato-cultivation', 'recommendation', 'control', 'farmland', 'knowledge', 'users', 'record-knowledge', 'experience-knowledge', 'cultivation-recommendation', 'control-recommendation', 'data-analytics', 'data-explorer', 'greenhouse-center'].includes(selectedMenu) && (
             <Card>
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <Title level={3}>개발 중인 기능입니다</Title>

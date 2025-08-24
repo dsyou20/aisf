@@ -50,7 +50,7 @@ const DashboardLayout = () => {
 
   const menuItems = [
     {
-      key: '/dashboard',
+      key: '/cultivation/greenhouse-overview',
       icon: <DashboardOutlined />,
       label: '대시보드',
     },
@@ -63,7 +63,7 @@ const DashboardLayout = () => {
         { key: '/cultivation/status', label: '재배 현황' },
         { key: '/cultivation/recommendation', label: 'AI 권장사항' },
         { key: '/cultivation/execution', label: '재배 실행' },
-        { key: '/cultivation/simulator', label: '환경 시뮬레이터' },
+        { key: '/cultivation/yield-prediction', label: '수확량 예측' },
       ],
     },
     {
@@ -123,7 +123,17 @@ const DashboardLayout = () => {
   return (
     <StyledLayout>
       <Sider trigger={null} collapsible collapsed={collapsed} theme="light">
-        <Logo style={{ padding: '16px', textAlign: 'center' }}>
+        <Logo 
+          style={{ 
+            padding: '16px', 
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s'
+          }}
+          onClick={() => navigate('/')}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+        >
           {collapsed ? 'SF' : '스마트팜'}
         </Logo>
         <Menu
@@ -136,12 +146,23 @@ const DashboardLayout = () => {
       </Sider>
       <Layout>
         <StyledHeader>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: '16px', width: 64, height: 64 }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ fontSize: '16px', width: 64, height: 64 }}
+            />
+            <Button
+              type="text"
+              icon={<DashboardOutlined />}
+              onClick={() => navigate('/')}
+              style={{ fontSize: '16px', marginLeft: '8px' }}
+              title="홈으로 돌아가기"
+            >
+              홈
+            </Button>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Dropdown
               menu={{ items: userMenuItems }}

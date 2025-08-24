@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Card, 
   Row, 
@@ -18,7 +19,9 @@ import {
   Calendar,
   Badge,
   Tooltip,
-  Spin
+  Spin,
+  List,
+  message
 } from 'antd';
 import {
   ExperimentOutlined,
@@ -31,7 +34,8 @@ import {
   BulbOutlined,
   WarningOutlined,
   CheckCircleOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  RobotOutlined
 } from '@ant-design/icons';
 import {
   LineChart,
@@ -63,32 +67,63 @@ import {
   COST_COLORS
 } from '../../utils/detailedScenarios';
 import { IntegratedPredictionSystem } from '../../utils/predictionEngine';
+import { GREENHOUSE_DATA } from '../../utils/greenhouseManager';
+import { 
+  generateDailyActionSchedule,
+  executeAction,
+  updateActionStatus,
+  calculateDayProgress,
+  ACTION_CATEGORY_COLORS,
+  ACTION_PRIORITY_COLORS,
+  DAY_STATUS_COLORS,
+  AUTOMATION_LEVELS,
+  AUTOMATED_ACTIONS
+} from '../../utils/actionCalendar';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
 const GreenhouseSimulator = () => {
+  const { greenhouseId } = useParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('weekly');
+  const [activeTab, setActiveTab] = useState('action_calendar');
   const [selectedScenario, setSelectedScenario] = useState('normal');
   const [simulationRunning, setSimulationRunning] = useState(false);
-  const [currentWeek, setCurrentWeek] = useState(15); // 화아분화기
-  const [currentEnvironment, setCurrentEnvironment] = useState({
-    temperature: 22,
-    humidity: 68,
-    co2: 450,
-    lightIntensity: 25000,
-    soilMoisture: 55,
-    soilPH: 6.3,
-    soilTemperature: 18,
-    windSpeed: 1.2
-  });
+  const [currentWeek, setCurrentWeek] = useState(15);
+  const [currentEnvironment, setCurrentEnvironment] = useState({});
+  const [selectedGreenhouse, setSelectedGreenhouse] = useState(null);
+
+  // 선택된 하우스 정보 로드
+  useEffect(() => {
+    if (greenhouseId && GREENHOUSE_DATA[greenhouseId]) {
+      const greenhouse = GREENHOUSE_DATA[greenhouseId];
+      setSelectedGreenhouse(greenhouse);
+      setCurrentWeek(greenhouse.currentWeek);
+      
+      // 센서 데이터를 환경 데이터로 변환
+      const environment = {};
+      Object.keys(greenhouse.sensors).forEach(sensor => {
+        environment[sensor] = greenhouse.sensors[sensor].current;
+      });
+      setCurrentEnvironment(environment);
+    } else if (greenhouseId) {
+      // 잘못된 하우스 ID인 경우 오버뷰로 리다이렉트
+      navigate('/cultivation/greenhouse-overview');
+    }
+  }, [greenhouseId, navigate]);
   
   const [weeklyData, setWeeklyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [predictionResults, setPredictionResults] = useState(null);
   const [scenarioResults, setScenarioResults] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(dayjs());
+  const [actionSchedule, setActionSchedule] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDayActions, setSelectedDayActions] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [executingActions, setExecutingActions] = useState(new Set());
 
   const predictionEngine = new IntegratedPredictionSystem();
 
@@ -126,6 +161,22 @@ const GreenhouseSimulator = () => {
       const month = selectedMonth.month() + 1;
       const monthlyEnvironmentData = generateMonthlyEnvironmentSummary(year, month, currentEnvironment);
       setMonthlyData(monthlyEnvironmentData);
+
+      // 작업 스케줄 생성
+      if (selectedGreenhouse) {
+        setScheduleLoading(true);
+        
+        // 약간의 지연을 추가하여 로딩 상태를 보여줌
+        setTimeout(() => {
+          const schedule = generateDailyActionSchedule(
+            selectedGreenhouse.id, 
+            new Date().toISOString().split('T')[0], 
+            30
+          );
+          setActionSchedule(schedule);
+          setScheduleLoading(false);
+        }, 800);
+      }
     } finally {
       setLoading(false);
     }
@@ -267,102 +318,385 @@ const GreenhouseSimulator = () => {
     </div>
   );
 
-  // 월간 달력 탭
-  const MonthlyCalendarTab = () => {
-    const dateCellRender = (value) => {
-      const dateStr = value.format('YYYY-MM-DD');
-      const dayData = monthlyData.find(d => d.date === dateStr);
+  // 작업 달력 탭 (기존 월간 달력 교체)
+  const ActionCalendarTab = () => {
+    // 달력 날짜 셀 렌더링 (작업 중심)
+    const dateCellRender = (current, info) => {
+      // info.type이 'date'일 때만 처리
+      if (info.type !== 'date') return info.originNode;
       
-      if (!dayData) return null;
+      const dateStr = current.format('YYYY-MM-DD');
+      const dayData = actionSchedule.find(day => day.date === dateStr);
+      
+      if (!dayData) return info.originNode;
 
-      const statusColor = {
-        optimal: '#52c41a',
-        normal: '#1890ff',
-        warning: '#faad14',
-        critical: '#ff4d4f'
-      }[dayData.status];
+      const progress = calculateDayProgress(dayData.actions);
+      const statusColor = DAY_STATUS_COLORS[dayData.status];
 
       return (
-        <div style={{ fontSize: '12px' }}>
-          <div style={{ color: statusColor, fontWeight: 'bold' }}>
-            {Math.round(dayData.avgTemperature)}°C
+        <div className="ant-picker-cell-inner ant-picker-calendar-date">
+          <div className="ant-picker-calendar-date-value">{current.date()}</div>
+          <div className="ant-picker-calendar-date-content">
+            <div style={{ fontSize: '10px', lineHeight: '1.1' }}>
+              {/* 주요 작업 표시 */}
+              <div style={{ marginBottom: '2px', fontWeight: 'bold', color: statusColor }}>
+                {dayData.actions.slice(0, 2).map(action => (
+                  <div key={action.id} style={{ fontSize: '9px', marginBottom: '1px' }}>
+                    {action.name.length > 8 ? action.name.substring(0, 8) + '...' : action.name}
+                  </div>
+                ))}
+              </div>
+              
+              {/* 작업 개수 및 상태 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Badge 
+                  count={dayData.totalActions} 
+                  size="small"
+                  style={{ backgroundColor: statusColor }}
+                />
+                {dayData.urgentActions > 0 && (
+                  <Badge 
+                    count={dayData.urgentActions} 
+                    size="small"
+                    style={{ backgroundColor: '#ff4d4f' }}
+                  />
+                )}
+              </div>
+              
+              {/* 진행률 바 */}
+              <div style={{ marginTop: '2px' }}>
+                <div style={{
+                  width: '100%',
+                  height: '3px',
+                  backgroundColor: '#f0f0f0',
+                  borderRadius: '2px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${progress}%`,
+                    height: '100%',
+                    backgroundColor: progress === 100 ? '#52c41a' : '#1890ff',
+                    transition: 'width 0.3s'
+                  }} />
+                </div>
+              </div>
+              
+              {/* 환경 정보 (작게) */}
+              <div style={{ fontSize: '8px', color: '#999', marginTop: '1px' }}>
+                🌡️{Math.round(selectedGreenhouse?.sensors?.temperature?.current || 22)}° 
+                💧{Math.round(selectedGreenhouse?.sensors?.humidity?.current || 68)}%
+              </div>
+            </div>
           </div>
-          <div style={{ color: '#666' }}>
-            {Math.round(dayData.avgHumidity)}%
-          </div>
-          {dayData.requiredActions.length > 0 && (
-            <Badge 
-              count={dayData.requiredActions.length} 
-              size="small" 
-              style={{ backgroundColor: statusColor }}
-            />
-          )}
         </div>
       );
     };
 
-    const monthCellRender = (value) => {
-      return null; // 월간 뷰에서는 사용하지 않음
+    // 날짜 선택 시 작업 상세 모달
+    const onDateSelect = (value) => {
+      const dateStr = value.format('YYYY-MM-DD');
+      const dayData = actionSchedule.find(day => day.date === dateStr);
+      
+      if (dayData) {
+        setSelectedDate(value);
+        setSelectedDayActions(dayData.actions);
+        setModalVisible(true);
+      }
     };
+
+    // 작업 실행
+    const handleExecuteAction = async (action) => {
+      if (executingActions.has(action.id)) return;
+
+      setExecutingActions(prev => new Set([...prev, action.id]));
+      
+      try {
+        const result = await executeAction(action.id, selectedGreenhouse?.id);
+        
+        if (result.success) {
+          // 작업 상태 업데이트
+          const updatedSchedule = updateActionStatus(
+            actionSchedule, 
+            action.id, 
+            'completed', 
+            result.result
+          );
+          setActionSchedule(updatedSchedule);
+          
+          // 모달의 액션 리스트도 업데이트
+          setSelectedDayActions(prev => 
+            prev.map(a => 
+              a.id === action.id 
+                ? { ...a, status: 'completed', result: result.result }
+                : a
+            )
+          );
+        }
+      } finally {
+        setExecutingActions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(action.id);
+          return newSet;
+        });
+      }
+    };
+
+    if (scheduleLoading) {
+      return (
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '16px', fontSize: '16px', color: '#666' }}>
+            🌱 작업 스케줄을 생성하고 있습니다...
+          </div>
+          <div style={{ marginTop: '8px', fontSize: '14px', color: '#999' }}>
+            잠시만 기다려주세요
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div>
         <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-          <Col span={12}>
-            <Select
-              value={selectedMonth.format('YYYY-MM')}
-              onChange={(value) => setSelectedMonth(dayjs(value))}
-              style={{ width: '100%' }}
-            >
-              {Array.from({ length: 12 }, (_, i) => {
-                const month = dayjs().month(i);
-                return (
-                  <Option key={month.format('YYYY-MM')} value={month.format('YYYY-MM')}>
-                    {month.format('YYYY년 MM월')}
-                  </Option>
-                );
-              })}
-            </Select>
+          <Col span={8}>
+            <Statistic
+              title="이번 주 총 작업"
+              value={actionSchedule.slice(0, 7).reduce((sum, day) => sum + day.totalActions, 0)}
+              suffix="개"
+              valueStyle={{ color: '#1890ff' }}
+            />
           </Col>
-          <Col span={12}>
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={loadInitialData}
-              loading={loading}
-            >
-              데이터 새로고침
-            </Button>
+          <Col span={8}>
+            <Statistic
+              title="긴급 작업"
+              value={actionSchedule.slice(0, 7).reduce((sum, day) => sum + day.urgentActions, 0)}
+              suffix="개"
+              valueStyle={{ color: '#ff4d4f' }}
+            />
+          </Col>
+          <Col span={8}>
+            <Statistic
+              title="자동화율"
+              value={actionSchedule.slice(0, 7).length > 0 ? 
+                Math.round(actionSchedule.slice(0, 7).reduce((sum, day) => sum + day.automationRate, 0) / 7) : 0}
+              suffix="%"
+              valueStyle={{ color: '#52c41a' }}
+            />
           </Col>
         </Row>
 
-        <Card>
+        <Card title="📅 작업 중심 달력">
+          <div style={{ marginBottom: '16px' }}>
+            <Space wrap>
+              <Tag color={DAY_STATUS_COLORS.light}>가벼운 작업일</Tag>
+              <Tag color={DAY_STATUS_COLORS.normal}>보통 작업일</Tag>
+              <Tag color={DAY_STATUS_COLORS.busy}>바쁜 작업일</Tag>
+              <Tag color={DAY_STATUS_COLORS.critical}>긴급 작업일</Tag>
+            </Space>
+            <div style={{ marginTop: '8px' }}>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                • 주요 작업명 표시 • 배지: 총 작업 수 / 긴급 작업 수 • 진행률 바 • 환경 정보 (온도/습도)
+              </Text>
+            </div>
+          </div>
+          
           <Calendar
-            value={selectedMonth}
-            dateCellRender={dateCellRender}
-            monthCellRender={monthCellRender}
-            onSelect={(date) => {
-              const dateStr = date.format('YYYY-MM-DD');
-              const dayData = monthlyData.find(d => d.date === dateStr);
-              if (dayData) {
-                showDayDetails(dayData);
-              }
-            }}
+            cellRender={dateCellRender}
+            onSelect={onDateSelect}
           />
         </Card>
 
-        <Card title="범례" style={{ marginTop: '16px' }}>
-          <Space wrap>
-            <Tag color="#52c41a">최적 환경</Tag>
-            <Tag color="#1890ff">정상 환경</Tag>
-            <Tag color="#faad14">주의 필요</Tag>
-            <Tag color="#ff4d4f">위험 상태</Tag>
-          </Space>
-          <div style={{ marginTop: '8px' }}>
-            <Text type="secondary">
-              숫자: 온도(°C) / 습도(%), 배지: 필요 조치사항 개수
-            </Text>
-          </div>
-        </Card>
+        {/* 작업 상세 모달 */}
+        <Modal
+          title={
+            <Space>
+              <CalendarOutlined />
+              {selectedDate?.format('YYYY년 MM월 DD일 (ddd)')} 작업 목록
+              <Tag color={selectedDayActions.length > 0 ? DAY_STATUS_COLORS[getDayStatus(selectedDayActions)] : 'default'}>
+                {selectedDayActions.length}개 작업
+              </Tag>
+            </Space>
+          }
+          open={modalVisible}
+          onCancel={() => setModalVisible(false)}
+          width={900}
+          footer={
+            <div style={{ textAlign: 'center' }}>
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<RobotOutlined />}
+                  onClick={() => {
+                    const autoActions = selectedDayActions.filter(
+                      action => action.automation === 'full' && action.status === 'pending'
+                    );
+                    autoActions.forEach(action => handleExecuteAction(action));
+                  }}
+                  disabled={!selectedDayActions.some(action => 
+                    action.automation === 'full' && action.status === 'pending'
+                  )}
+                >
+                  모든 자동 작업 실행
+                </Button>
+                <Button
+                  onClick={() => {
+                    const semiActions = selectedDayActions.filter(
+                      action => action.automation === 'semi' && action.status === 'pending'
+                    );
+                    semiActions.forEach(action => handleExecuteAction(action));
+                  }}
+                  disabled={!selectedDayActions.some(action => 
+                    action.automation === 'semi' && action.status === 'pending'
+                  )}
+                >
+                  반자동 작업 실행
+                </Button>
+              </Space>
+            </div>
+          }
+        >
+          {selectedDayActions.length > 0 ? (
+            <div>
+              {/* 하루 요약 */}
+              <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
+                <Col span={6}>
+                  <Statistic
+                    title="총 작업"
+                    value={selectedDayActions.length}
+                    suffix="개"
+                    valueStyle={{ fontSize: '16px' }}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="자동화율"
+                    value={calculateAutomationRate(selectedDayActions)}
+                    suffix="%"
+                    valueStyle={{ fontSize: '16px', color: '#52c41a' }}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="진행률"
+                    value={calculateDayProgress(selectedDayActions)}
+                    suffix="%"
+                    valueStyle={{ fontSize: '16px', color: '#1890ff' }}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic
+                    title="예상 소요시간"
+                    value={calculateTotalDuration(selectedDayActions).display}
+                    valueStyle={{ fontSize: '14px', color: '#722ed1' }}
+                  />
+                </Col>
+              </Row>
+
+              {/* 작업 리스트 */}
+              <List
+                dataSource={selectedDayActions}
+                renderItem={(action) => (
+                  <List.Item
+                    key={action.id}
+                    actions={[
+                      <Space key="actions">
+                        {action.automation === 'full' && action.status === 'pending' && (
+                          <Button
+                            type="primary"
+                            icon={<RobotOutlined />}
+                            size="small"
+                            loading={executingActions.has(action.id)}
+                            onClick={() => handleExecuteAction(action)}
+                          >
+                            자동 실행
+                          </Button>
+                        )}
+                        {action.automation === 'semi' && action.status === 'pending' && (
+                          <Button
+                            type="default"
+                            icon={<SettingOutlined />}
+                            size="small"
+                            loading={executingActions.has(action.id)}
+                            onClick={() => handleExecuteAction(action)}
+                          >
+                            반자동 실행
+                          </Button>
+                        )}
+                        {action.status === 'completed' && (
+                          <Tag color="success" icon={<CheckCircleOutlined />}>
+                            완료
+                          </Tag>
+                        )}
+                      </Space>
+                    ]}
+                    style={{
+                      borderLeft: `4px solid ${ACTION_PRIORITY_COLORS[action.priority]}`,
+                      paddingLeft: '12px',
+                      marginBottom: '8px',
+                      backgroundColor: action.status === 'completed' ? '#f6ffed' : '#fafafa'
+                    }}
+                  >
+                    <List.Item.Meta
+                      avatar={getActionStatusIcon(action.status)}
+                      title={
+                        <Space>
+                          <Text strong style={{ color: ACTION_CATEGORY_COLORS[AUTOMATED_ACTIONS[action.type]?.category] || '#1890ff' }}>
+                            {action.name}
+                          </Text>
+                          <Tag color={ACTION_PRIORITY_COLORS[action.priority]}>
+                            {action.priority === 'critical' ? '긴급' : 
+                             action.priority === 'high' ? '높음' : 
+                             action.priority === 'medium' ? '보통' : '낮음'}
+                          </Tag>
+                          <Tag color={AUTOMATION_LEVELS[action.automation].color}>
+                            {AUTOMATION_LEVELS[action.automation].name}
+                          </Tag>
+                        </Space>
+                      }
+                      description={
+                        <div>
+                          <div style={{ marginBottom: '4px' }}>
+                            <Text>{action.description}</Text>
+                          </div>
+                          <Space size="small">
+                            <Text type="secondary">🕐 {action.scheduledTime}</Text>
+                            <Text type="secondary">⏱️ {action.estimatedDuration}</Text>
+                            {action.method && (
+                              <Text type="secondary">🔧 {action.method.name}</Text>
+                            )}
+                          </Space>
+                          
+                          {/* 조건 정보 */}
+                          {action.conditions && (
+                            <div style={{ marginTop: '8px', fontSize: '12px' }}>
+                              <Text type="secondary">
+                                현재: {action.conditions.current} → 목표: {action.conditions.target}
+                              </Text>
+                            </div>
+                          )}
+                          
+                          {/* 실행 결과 */}
+                          {action.result && (
+                            <Alert
+                              message={action.result}
+                              type={action.status === 'completed' ? 'success' : 'error'}
+                              size="small"
+                              style={{ marginTop: '8px' }}
+                            />
+                          )}
+                        </div>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <Text type="secondary">이 날짜에는 예정된 작업이 없습니다.</Text>
+            </div>
+          )}
+        </Modal>
       </div>
     );
   };
@@ -841,6 +1175,61 @@ const GreenhouseSimulator = () => {
   );
 
   // 헬퍼 함수들
+  const getDayStatus = (actions) => {
+    const criticalCount = actions.filter(a => a.priority === 'critical').length;
+    const highCount = actions.filter(a => a.priority === 'high').length;
+    
+    if (criticalCount > 0) return 'critical';
+    if (highCount > 2) return 'busy';
+    if (actions.length > 5) return 'normal';
+    return 'light';
+  };
+
+  const calculateAutomationRate = (actions) => {
+    if (actions.length === 0) return 0;
+    
+    const automationScores = { full: 1, semi: 0.5, manual: 0 };
+    const totalScore = actions.reduce((sum, action) => {
+      return sum + (automationScores[action.automation] || 0);
+    }, 0);
+    
+    return Math.round((totalScore / actions.length) * 100);
+  };
+
+  const calculateTotalDuration = (actions) => {
+    let totalMinutes = 0;
+    
+    actions.forEach(action => {
+      const duration = action.estimatedDuration;
+      if (duration.includes('시간')) {
+        const hours = parseFloat(duration.match(/\d+/)[0]);
+        totalMinutes += hours * 60;
+      } else if (duration.includes('분')) {
+        const minutes = parseFloat(duration.match(/\d+/)[0]);
+        totalMinutes += minutes;
+      }
+    });
+    
+    return {
+      totalMinutes,
+      hours: Math.floor(totalMinutes / 60),
+      minutes: totalMinutes % 60,
+      display: totalMinutes > 60 ? 
+        `${Math.floor(totalMinutes / 60)}시간 ${totalMinutes % 60}분` : 
+        `${totalMinutes}분`
+    };
+  };
+
+  const getActionStatusIcon = (status) => {
+    const iconMap = {
+      pending: <ClockCircleOutlined style={{ color: '#faad14' }} />,
+      in_progress: <PlayCircleOutlined style={{ color: '#1890ff' }} />,
+      completed: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+      failed: <WarningOutlined style={{ color: '#ff4d4f' }} />
+    };
+    return iconMap[status] || iconMap.pending;
+  };
+
   const getCurrentStage = (week) => {
     const strawberryStages = GROWTH_STAGES.strawberry;
     return strawberryStages.find(stage => 
@@ -905,12 +1294,31 @@ const GreenhouseSimulator = () => {
   return (
     <div style={{ padding: '24px' }}>
       <div style={{ marginBottom: '24px' }}>
-        <Title level={2}>
-          <ExperimentOutlined /> 온실 환경 시뮬레이터
-        </Title>
-        <Text type="secondary">
-          가상 온실 환경에서 다양한 시나리오를 시뮬레이션하고 미래 작업을 예측합니다
-        </Text>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <Title level={2}>
+              <ExperimentOutlined /> 
+              {selectedGreenhouse ? `${selectedGreenhouse.name} 환경 시뮬레이터` : '온실 환경 시뮬레이터'}
+            </Title>
+            <Space>
+              <Text type="secondary">
+                {selectedGreenhouse ? 
+                  `${selectedGreenhouse.description} | ${selectedGreenhouse.area}㎡ | ${selectedGreenhouse.currentWeek}주차` :
+                  '가상 온실 환경에서 다양한 시나리오를 시뮬레이션하고 미래 작업을 예측합니다'
+                }
+              </Text>
+              {selectedGreenhouse && (
+                <Tag color="blue">{selectedGreenhouse.cropName}</Tag>
+              )}
+            </Space>
+          </div>
+          <Button 
+            onClick={() => navigate('/cultivation/greenhouse-overview')}
+            icon={<BarChartOutlined />}
+          >
+            전체 하우스 보기
+          </Button>
+        </div>
       </div>
 
       <Tabs
@@ -918,14 +1326,14 @@ const GreenhouseSimulator = () => {
         onChange={setActiveTab}
         items={[
           {
+            key: 'action_calendar',
+            label: <span><CalendarOutlined />작업 달력</span>,
+            children: <ActionCalendarTab />
+          },
+          {
             key: 'weekly',
             label: <span><BarChartOutlined />주차별 모니터링</span>,
             children: <WeeklyEnvironmentTab />
-          },
-          {
-            key: 'monthly',
-            label: <span><CalendarOutlined />월간 달력</span>,
-            children: <MonthlyCalendarTab />
           },
           {
             key: 'prediction',

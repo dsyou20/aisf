@@ -1,35 +1,35 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
-import DashboardLayout from './components/layout/DashboardLayout';
 
-// 재배 관리 페이지들
-import Overview from './pages/cultivation/Overview';
-import Status from './pages/cultivation/Status';
-import Recommendation from './pages/cultivation/Recommendation';
-import Execution from './pages/cultivation/Execution';
-import Simulator from './pages/cultivation/Simulator';
+// 역할별 레이아웃
+import OwnerLayout from './components/layout/OwnerLayout';
+import ManagerLayout from './components/layout/ManagerLayout';
+import AdminLayout from './components/layout/AdminLayout';
 
-// 전문가 관리 페이지들
-import Owners from './pages/experts/Owners';
-import Specialists from './pages/experts/Specialists';
+// 농장주 페이지들
+import OwnerDashboard from './pages/owner/Dashboard';
+import OwnerGreenhouses from './pages/owner/Greenhouses';
+import OwnerYieldPrediction from './pages/owner/YieldPrediction';
+import OwnerAnalytics from './pages/owner/Analytics';
+import OwnerSettings from './pages/owner/Settings';
 
-// 지식 관리 페이지들
-import Basic from './pages/knowledge/Basic';
-import Experience from './pages/knowledge/Experience';
-import Environment from './pages/knowledge/Environment';
-import Growth from './pages/knowledge/Growth';
-import Disease from './pages/knowledge/Disease';
-import KnowledgeRecommendation from './pages/knowledge/Recommendation';
-import Control from './pages/knowledge/Control';
+// 재배관리자 페이지들
+import ManagerDashboard from './pages/manager/Dashboard';
+import ManagerGreenhouses from './pages/manager/Greenhouses';
+import ManagerTasks from './pages/manager/Tasks';
+import ManagerPerformance from './pages/manager/Performance';
+import ManagerSettings from './pages/manager/Settings';
 
 // 관리자 페이지들
-import Users from './pages/admin/Users';
-import AdminKnowledge from './pages/admin/Knowledge';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminUsers from './pages/admin/Users';
+import AdminSystem from './pages/admin/System';
+import AdminAnalytics from './pages/admin/Analytics';
+import AdminSettings from './pages/admin/Settings';
 
-// 데이터 분석 페이지들
+// 데이터 분석 페이지들 (기존 유지)
 import AnalyticsDashboard from './pages/analytics/Dashboard';
 import DataExplorer from './pages/analytics/Explorer';
 import TestPage from './pages/analytics/Test';
@@ -47,47 +47,40 @@ function App() {
         {/* 로그인 페이지 */}
         <Route path="/login" element={<Login />} />
         
-        {/* 사용자 타입별 대시보드 */}
-        <Route path="/dashboard/:userType" element={<Dashboard />} />
-        
-        {/* 재배 관리 */}
-        <Route path="/cultivation" element={<DashboardLayout />}>
-          <Route path="overview" element={<Overview />} />
-          <Route path="status" element={<Status />} />
-          <Route path="recommendation" element={<Recommendation />} />
-          <Route path="execution" element={<Execution />} />
-          <Route path="simulator" element={<Simulator />} />
+        {/* 농장주 전용 페이지 */}
+        <Route path="/owner" element={<OwnerLayout />}>
+          <Route index element={<OwnerGreenhouses />} /> {/* 기본: 온실 관리 */}
+          <Route path="dashboard" element={<OwnerDashboard />} />
+          <Route path="greenhouses" element={<OwnerGreenhouses />} />
+          <Route path="yield-prediction" element={<OwnerYieldPrediction />} />
+          <Route path="analytics" element={<OwnerAnalytics />} />
+          <Route path="settings" element={<OwnerSettings />} />
         </Route>
         
-        {/* 전문가 관리 */}
-        <Route path="/experts" element={<DashboardLayout />}>
-          <Route path="owners" element={<Owners />} />
-          <Route path="specialists" element={<Specialists />} />
+        {/* 재배관리자 전용 페이지 */}
+        <Route path="/manager" element={<ManagerLayout />}>
+          <Route index element={<ManagerGreenhouses />} /> {/* 기본: 담당 온실 */}
+          <Route path="dashboard" element={<ManagerDashboard />} />
+          <Route path="greenhouses" element={<ManagerGreenhouses />} />
+          <Route path="tasks" element={<ManagerTasks />} />
+          <Route path="performance" element={<ManagerPerformance />} />
+          <Route path="settings" element={<ManagerSettings />} />
         </Route>
         
-        {/* 지식 관리 */}
-        <Route path="/knowledge" element={<DashboardLayout />}>
-          <Route path="basic" element={<Basic />} />
-          <Route path="experience" element={<Experience />} />
-          <Route path="environment" element={<Environment />} />
-          <Route path="growth" element={<Growth />} />
-          <Route path="disease" element={<Disease />} />
-          <Route path="recommendation" element={<KnowledgeRecommendation />} />
-          <Route path="control" element={<Control />} />
+        {/* 관리자 전용 페이지 */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} /> {/* 기본: 대시보드 */}
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="system" element={<AdminSystem />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
         
-        {/* 관리자 */}
-        <Route path="/admin" element={<DashboardLayout />}>
-          <Route path="users" element={<Users />} />
-          <Route path="knowledge" element={<AdminKnowledge />} />
-        </Route>
-        
-        {/* 데이터 분석 */}
-        <Route path="/analytics" element={<DashboardLayout />}>
-          <Route path="dashboard" element={<AnalyticsDashboard />} />
-          <Route path="explorer" element={<DataExplorer />} />
-          <Route path="test" element={<TestPage />} />
-        </Route>
+        {/* 기존 데이터 분석 페이지들 (임시 유지) */}
+        <Route path="/analytics/dashboard" element={<AnalyticsDashboard />} />
+        <Route path="/analytics/explorer" element={<DataExplorer />} />
+        <Route path="/analytics/test" element={<TestPage />} />
         
         {/* 간단한 테스트 (레이아웃 없이) */}
         <Route path="/simple-test" element={<SimpleTest />} />
@@ -96,4 +89,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;
